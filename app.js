@@ -60,6 +60,13 @@ function addPaystub() {
 
 // Remove a paystub
 function removePaystub(paystubId) {
+    // Prevent removal of the last paystub
+    const paystubItems = document.querySelectorAll('.paystub-item');
+    if (paystubItems.length <= 1) {
+        showError('You must have at least one paystub');
+        return;
+    }
+    
     const paystubItem = document.querySelector(`.paystub-item[data-id="${paystubId}"]`);
     if (paystubItem) {
         paystubItem.remove();
@@ -93,7 +100,7 @@ function addDailyCharge() {
 
 // Remove a daily charge
 function removeDailyCharge(chargeId) {
-    const chargeItem = document.querySelector(`[data-id="${chargeId}"]`);
+    const chargeItem = document.querySelector(`.charge-item[data-id="${chargeId}"]`);
     if (chargeItem) {
         chargeItem.remove();
     }
@@ -142,8 +149,12 @@ function getPaystubs() {
         const startDate = item.querySelector('.paystub-start').value;
         const endDate = item.querySelector('.paystub-end').value;
         
+        // Validate dates and amount
         if (amount > 0 && startDate && endDate) {
-            paystubs.push({ amount, startDate, endDate });
+            // Validate that end date is after start date
+            if (new Date(endDate) > new Date(startDate)) {
+                paystubs.push({ amount, startDate, endDate });
+            }
         }
     });
     
@@ -165,10 +176,11 @@ function calculateProjection() {
         return;
     }
     
-    // Calculate total paystub amount (sum all paystubs)
+    // Calculate total and average paystub amounts
+    // Total is used to verify all income, average is used for monthly income projection
     const totalPaystubAmount = paystubs.reduce((sum, paystub) => sum + paystub.amount, 0);
     
-    // Calculate average paystub for display purposes
+    // Calculate average paystub for monthly income calculation (assumes biweekly pay)
     const avgPaystubAmount = totalPaystubAmount / paystubs.length;
     
     // Calculate average daily charges
