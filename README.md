@@ -68,11 +68,11 @@ This app runs entirely in your browser. No data is sent to any server or stored 
 
 ## Browser Compatibility
 
-Works with all modern browsers:
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-- Opera 76+
+Works with all modern browsers (released within the last 2-3 years):
+- Chrome/Edge
+- Firefox
+- Safari
+- Opera
 
 ## License
 

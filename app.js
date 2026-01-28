@@ -1,5 +1,4 @@
 // State management
-let dailyCharges = [];
 let chart = null;
 
 // Initialize the app
@@ -36,10 +35,16 @@ function addDailyCharge() {
     chargeItem.innerHTML = `
         <input type="date" class="charge-date" placeholder="Date">
         <input type="number" class="charge-amount" placeholder="Amount ($)" step="0.01" min="0">
-        <button class="btn-danger" onclick="removeDailyCharge(${chargeId})">Remove</button>
+        <button class="btn-danger" data-charge-id="${chargeId}">Remove</button>
     `;
     
     chargesList.appendChild(chargeItem);
+    
+    // Add event listener to the remove button
+    const removeBtn = chargeItem.querySelector('.btn-danger');
+    removeBtn.addEventListener('click', function() {
+        removeDailyCharge(chargeId);
+    });
 }
 
 // Remove a daily charge
@@ -48,6 +53,22 @@ function removeDailyCharge(chargeId) {
     if (chargeItem) {
         chargeItem.remove();
     }
+}
+
+// Show error message
+function showError(message) {
+    // Create a simple error notification
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f44336; color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; font-weight: 600;';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        errorDiv.style.transition = 'opacity 0.3s';
+        errorDiv.style.opacity = '0';
+        setTimeout(() => errorDiv.remove(), 300);
+    }, 3000);
 }
 
 // Get all daily charges from the form
@@ -78,7 +99,7 @@ function calculateProjection() {
     
     // Validation
     if (paystubAmount === 0) {
-        alert('Please enter your paystub amount');
+        showError('Please enter your paystub amount');
         return;
     }
     
@@ -86,8 +107,8 @@ function calculateProjection() {
     const totalDailyCharges = dailyCharges.reduce((sum, charge) => sum + charge.amount, 0);
     const avgDailyCharge = dailyCharges.length > 0 ? totalDailyCharges / dailyCharges.length : 0;
     
-    // Calculate monthly income (2 paychecks per month approximately)
-    const monthlyIncome = paystubAmount * 2;
+    // Calculate monthly income (biweekly pay = 26 pay periods per year)
+    const monthlyIncome = paystubAmount * 26 / 12;
     
     // Calculate monthly variable expenses (daily charges * 30)
     const monthlyVariableExpenses = avgDailyCharge * 30;
@@ -148,7 +169,7 @@ function generateChart(startingBalance, monthlySavings, variableExpenses, saving
     const ctx = document.getElementById('savingsChart').getContext('2d');
     
     // Check if Chart.js is available
-    if (typeof Chart === 'undefined' || !Chart.Chart) {
+    if (typeof Chart !== 'function') {
         // Fallback to text-based visualization
         generateTextChart(ctx, startingBalance, monthlySavings, variableExpenses, savingsGoal);
         return;
@@ -167,13 +188,14 @@ function generateChart(startingBalance, monthlySavings, variableExpenses, saving
     const lowerBoundData = [];
     
     // Calculate uncertainty based on variable expenses (±20% variance)
-    const uncertaintyFactor = 0.20;
+    // This represents typical fluctuation in variable spending patterns
+    const UNCERTAINTY_FACTOR = 0.20;
     
     for (let i = 0; i <= months; i++) {
         labels.push(i === 0 ? 'Now' : `Month ${i}`);
         
         const baseProjection = startingBalance + (monthlySavings * i);
-        const uncertainty = variableExpenses * uncertaintyFactor * i;
+        const uncertainty = variableExpenses * UNCERTAINTY_FACTOR * i;
         
         projectedData.push(baseProjection);
         upperBoundData.push(baseProjection + uncertainty);
@@ -200,7 +222,10 @@ function generateChart(startingBalance, monthlySavings, variableExpenses, saving
             backgroundColor: 'rgba(76, 175, 80, 0.05)',
             borderWidth: 2,
             borderDash: [5, 5],
-            fill: '+1',
+            fill: {
+                target: 0,
+                above: 'rgba(76, 175, 80, 0.1)'
+            },
             tension: 0.1,
             pointRadius: 0
         },
@@ -211,7 +236,10 @@ function generateChart(startingBalance, monthlySavings, variableExpenses, saving
             backgroundColor: 'rgba(244, 67, 54, 0.05)',
             borderWidth: 2,
             borderDash: [5, 5],
-            fill: '-1',
+            fill: {
+                target: 0,
+                below: 'rgba(244, 67, 54, 0.1)'
+            },
             tension: 0.1,
             pointRadius: 0
         }
@@ -300,6 +328,12 @@ function generateChart(startingBalance, monthlySavings, variableExpenses, saving
 // Fallback text-based chart when Chart.js is not available
 function generateTextChart(ctx, startingBalance, monthlySavings, variableExpenses, savingsGoal) {
     const canvas = ctx.canvas;
+    
+    // Set canvas dimensions based on container size
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth || 800;
+    canvas.height = container.clientHeight || 400;
+    
     const width = canvas.width;
     const height = canvas.height;
     
@@ -307,12 +341,12 @@ function generateTextChart(ctx, startingBalance, monthlySavings, variableExpense
     
     // Generate projection data
     const months = 12;
-    const uncertaintyFactor = 0.20;
+    const UNCERTAINTY_FACTOR = 0.20;
     const projections = [];
     
     for (let i = 0; i <= months; i++) {
         const baseProjection = startingBalance + (monthlySavings * i);
-        const uncertainty = variableExpenses * uncertaintyFactor * i;
+        const uncertainty = variableExpenses * UNCERTAINTY_FACTOR * i;
         projections.push({
             month: i,
             base: baseProjection,
@@ -434,11 +468,12 @@ function generateTextChart(ctx, startingBalance, monthlySavings, variableExpense
         ctx.stroke();
     }
     
-    // Draw legend
+    // Draw legend - dynamically positioned based on canvas width
     ctx.setLineDash([]);
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'left';
     const legendY = 30;
+    const legendSpacing = Math.min(150, width / 5); // Responsive spacing
     
     // Projected Balance
     ctx.fillStyle = 'rgb(75, 192, 192)';
@@ -448,21 +483,21 @@ function generateTextChart(ctx, startingBalance, monthlySavings, variableExpense
     
     // Upper Bound
     ctx.fillStyle = 'rgba(76, 175, 80, 0.8)';
-    ctx.fillRect(padding + 200, legendY, 20, 3);
+    ctx.fillRect(padding + legendSpacing, legendY, 20, 3);
     ctx.fillStyle = '#333';
-    ctx.fillText('Upper Bound', padding + 225, legendY + 4);
+    ctx.fillText('Upper Bound', padding + legendSpacing + 25, legendY + 4);
     
     // Lower Bound
     ctx.fillStyle = 'rgba(244, 67, 54, 0.8)';
-    ctx.fillRect(padding + 350, legendY, 20, 3);
+    ctx.fillRect(padding + legendSpacing * 2, legendY, 20, 3);
     ctx.fillStyle = '#333';
-    ctx.fillText('Lower Bound', padding + 375, legendY + 4);
+    ctx.fillText('Lower Bound', padding + legendSpacing * 2 + 25, legendY + 4);
     
-    if (savingsGoal > 0) {
+    if (savingsGoal > 0 && width > 600) {
         ctx.fillStyle = 'rgb(255, 159, 64)';
-        ctx.fillRect(padding + 500, legendY, 20, 3);
+        ctx.fillRect(padding + legendSpacing * 3, legendY, 20, 3);
         ctx.fillStyle = '#333';
-        ctx.fillText('Goal', padding + 525, legendY + 4);
+        ctx.fillText('Goal', padding + legendSpacing * 3 + 25, legendY + 4);
     }
     
     // Title
