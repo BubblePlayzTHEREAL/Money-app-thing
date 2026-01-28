@@ -147,6 +147,13 @@ function calculateProjection() {
 function generateChart(startingBalance, monthlySavings, variableExpenses, savingsGoal) {
     const ctx = document.getElementById('savingsChart').getContext('2d');
     
+    // Check if Chart.js is available
+    if (typeof Chart === 'undefined' || !Chart.Chart) {
+        // Fallback to text-based visualization
+        generateTextChart(ctx, startingBalance, monthlySavings, variableExpenses, savingsGoal);
+        return;
+    }
+    
     // Destroy existing chart if it exists
     if (chart) {
         chart.destroy();
@@ -288,4 +295,178 @@ function generateChart(startingBalance, monthlySavings, variableExpenses, saving
             }
         }
     });
+}
+
+// Fallback text-based chart when Chart.js is not available
+function generateTextChart(ctx, startingBalance, monthlySavings, variableExpenses, savingsGoal) {
+    const canvas = ctx.canvas;
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    // Generate projection data
+    const months = 12;
+    const uncertaintyFactor = 0.20;
+    const projections = [];
+    
+    for (let i = 0; i <= months; i++) {
+        const baseProjection = startingBalance + (monthlySavings * i);
+        const uncertainty = variableExpenses * uncertaintyFactor * i;
+        projections.push({
+            month: i,
+            base: baseProjection,
+            upper: baseProjection + uncertainty,
+            lower: Math.max(0, baseProjection - uncertainty)
+        });
+    }
+    
+    // Find min and max values for scaling
+    const allValues = projections.flatMap(p => [p.upper, p.lower]);
+    if (savingsGoal > 0) allValues.push(savingsGoal);
+    const minValue = Math.min(...allValues, 0);
+    const maxValue = Math.max(...allValues);
+    const valueRange = maxValue - minValue;
+    
+    // Chart dimensions
+    const padding = 60;
+    const chartWidth = width - (padding * 2);
+    const chartHeight = height - (padding * 2);
+    
+    // Helper function to scale y-values
+    const scaleY = (value) => {
+        return height - padding - ((value - minValue) / valueRange) * chartHeight;
+    };
+    
+    // Helper function to scale x-values
+    const scaleX = (month) => {
+        return padding + (month / months) * chartWidth;
+    };
+    
+    // Draw axes
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, height - padding);
+    ctx.lineTo(width - padding, height - padding);
+    ctx.stroke();
+    
+    // Draw grid lines and labels
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#666';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'right';
+    
+    const ySteps = 5;
+    for (let i = 0; i <= ySteps; i++) {
+        const value = minValue + (valueRange * i / ySteps);
+        const y = scaleY(value);
+        
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+        
+        ctx.fillText('$' + value.toFixed(0), padding - 10, y + 4);
+    }
+    
+    // Draw x-axis labels
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= months; i += 2) {
+        const x = scaleX(i);
+        ctx.fillText(i === 0 ? 'Now' : `M${i}`, x, height - padding + 20);
+    }
+    
+    // Draw uncertainty cone (filled area)
+    ctx.fillStyle = 'rgba(76, 175, 80, 0.1)';
+    ctx.beginPath();
+    ctx.moveTo(scaleX(0), scaleY(projections[0].upper));
+    for (let i = 0; i <= months; i++) {
+        ctx.lineTo(scaleX(i), scaleY(projections[i].upper));
+    }
+    for (let i = months; i >= 0; i--) {
+        ctx.lineTo(scaleX(i), scaleY(projections[i].lower));
+    }
+    ctx.closePath();
+    ctx.fill();
+    
+    // Draw upper bound line
+    ctx.strokeStyle = 'rgba(76, 175, 80, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(scaleX(0), scaleY(projections[0].upper));
+    for (let i = 1; i <= months; i++) {
+        ctx.lineTo(scaleX(i), scaleY(projections[i].upper));
+    }
+    ctx.stroke();
+    
+    // Draw lower bound line
+    ctx.strokeStyle = 'rgba(244, 67, 54, 0.8)';
+    ctx.beginPath();
+    ctx.moveTo(scaleX(0), scaleY(projections[0].lower));
+    for (let i = 1; i <= months; i++) {
+        ctx.lineTo(scaleX(i), scaleY(projections[i].lower));
+    }
+    ctx.stroke();
+    
+    // Draw main projection line
+    ctx.strokeStyle = 'rgb(75, 192, 192)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(scaleX(0), scaleY(projections[0].base));
+    for (let i = 1; i <= months; i++) {
+        ctx.lineTo(scaleX(i), scaleY(projections[i].base));
+    }
+    ctx.stroke();
+    
+    // Draw goal line if set
+    if (savingsGoal > 0) {
+        ctx.strokeStyle = 'rgb(255, 159, 64)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 5]);
+        ctx.beginPath();
+        ctx.moveTo(padding, scaleY(savingsGoal));
+        ctx.lineTo(width - padding, scaleY(savingsGoal));
+        ctx.stroke();
+    }
+    
+    // Draw legend
+    ctx.setLineDash([]);
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'left';
+    const legendY = 30;
+    
+    // Projected Balance
+    ctx.fillStyle = 'rgb(75, 192, 192)';
+    ctx.fillRect(padding, legendY, 20, 3);
+    ctx.fillStyle = '#333';
+    ctx.fillText('Projected Balance', padding + 25, legendY + 4);
+    
+    // Upper Bound
+    ctx.fillStyle = 'rgba(76, 175, 80, 0.8)';
+    ctx.fillRect(padding + 200, legendY, 20, 3);
+    ctx.fillStyle = '#333';
+    ctx.fillText('Upper Bound', padding + 225, legendY + 4);
+    
+    // Lower Bound
+    ctx.fillStyle = 'rgba(244, 67, 54, 0.8)';
+    ctx.fillRect(padding + 350, legendY, 20, 3);
+    ctx.fillStyle = '#333';
+    ctx.fillText('Lower Bound', padding + 375, legendY + 4);
+    
+    if (savingsGoal > 0) {
+        ctx.fillStyle = 'rgb(255, 159, 64)';
+        ctx.fillRect(padding + 500, legendY, 20, 3);
+        ctx.fillStyle = '#333';
+        ctx.fillText('Goal', padding + 525, legendY + 4);
+    }
+    
+    // Title
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Savings Projection with Uncertainty Range (12 Months)', width / 2, 15);
 }

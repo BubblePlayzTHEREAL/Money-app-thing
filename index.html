@@ -6,6 +6,16 @@
     <title>Money Tracker - Savings Calculator</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Fallback for when Chart.js doesn't load
+        window.Chart = window.Chart || function() {
+            console.warn('Chart.js not loaded, using fallback');
+            return {
+                destroy: function() {},
+                update: function() {}
+            };
+        };
+    </script>
 </head>
 <body>
     <div class="container">
