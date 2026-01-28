@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Tracker - Savings Calculator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Money Tracker</h1>
+            <p>Track your income, expenses, and savings goals</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Income Section -->
+            <section class="card">
+                <h2>📊 Income Information</h2>
+                <div class="form-group">
+                    <label for="paystubAmount">Paystub Amount ($)</label>
+                    <input type="number" id="paystubAmount" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="payPeriodStart">Pay Period Start</label>
+                        <input type="date" id="payPeriodStart">
+                    </div>
+                    <div class="form-group">
+                        <label for="payPeriodEnd">Pay Period End</label>
+                        <input type="date" id="payPeriodEnd">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Balance Section -->
+            <section class="card">
+                <h2>💳 Current Balance</h2>
+                <div class="form-group">
+                    <label for="currentBalance">Current Bank Balance ($)</label>
+                    <input type="number" id="currentBalance" placeholder="0.00" step="0.01">
+                </div>
+            </section>
+
+            <!-- Monthly Expenses Section -->
+            <section class="card">
+                <h2>📋 Monthly Flat Expenses</h2>
+                <div class="form-group">
+                    <label for="monthlyExpenses">Total Monthly Expenses ($)</label>
+                    <input type="number" id="monthlyExpenses" placeholder="0.00" step="0.01" min="0">
+                    <small>Include rent, utilities, subscriptions, etc.</small>
+                </div>
+            </section>
+
+            <!-- Daily Charges Section -->
+            <section class="card">
+                <h2>🛒 Daily Charges</h2>
+                <div id="dailyChargesList"></div>
+                <button id="addChargeBtn" class="btn-secondary">+ Add Daily Charge</button>
+            </section>
+
+            <!-- Savings Goal Section -->
+            <section class="card">
+                <h2>🎯 Savings Goal</h2>
+                <div class="form-group">
+                    <label for="savingsGoal">Target Amount ($)</label>
+                    <input type="number" id="savingsGoal" placeholder="0.00" step="0.01" min="0">
+                </div>
+            </section>
+
+            <!-- Calculate Button -->
+            <div class="calculate-section">
+                <button id="calculateBtn" class="btn-primary">Calculate Savings Projection</button>
+            </div>
+
+            <!-- Results Section -->
+            <section id="resultsSection" class="card results-hidden">
+                <h2>📈 Your Financial Projection</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Biweekly Income</div>
+                        <div class="stat-value" id="statIncome">$0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Monthly Expenses</div>
+                        <div class="stat-value" id="statExpenses">$0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg Daily Charges</div>
+                        <div class="stat-value" id="statDailyCharges">$0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Monthly Net Savings</div>
+                        <div class="stat-value" id="statNetSavings">$0.00</div>
+                    </div>
+                </div>
+
+                <div class="goal-info">
+                    <h3>Time to Reach Goal</h3>
+                    <p id="goalTimeframe" class="goal-text">-</p>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="savingsChart"></canvas>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
