@@ -7,21 +7,65 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initializeApp() {
-    // Set default dates
+    // Event listeners
+    document.getElementById('addPaystubBtn').addEventListener('click', addPaystub);
+    document.getElementById('addChargeBtn').addEventListener('click', addDailyCharge);
+    document.getElementById('calculateBtn').addEventListener('click', calculateProjection);
+    
+    // Add initial fields
+    addPaystub();
+    addDailyCharge();
+}
+
+// Add a new paystub input
+function addPaystub() {
+    const paystubsList = document.getElementById('paystubsList');
+    const paystubId = Date.now();
+    
+    // Set default dates (2 weeks ago to today)
     const today = new Date();
     const twoWeeksAgo = new Date(today);
     twoWeeksAgo.setDate(today.getDate() - 14);
     
-    document.getElementById('payPeriodStart').valueAsDate = twoWeeksAgo;
-    document.getElementById('payPeriodEnd').valueAsDate = today;
+    const paystubItem = document.createElement('div');
+    paystubItem.className = 'paystub-item';
+    paystubItem.dataset.id = paystubId;
     
-    // Event listeners
-    document.getElementById('addChargeBtn').addEventListener('click', addDailyCharge);
-    document.getElementById('calculateBtn').addEventListener('click', calculateProjection);
+    paystubItem.innerHTML = `
+        <div class="form-group">
+            <label>Paystub Amount ($)</label>
+            <input type="number" class="paystub-amount" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Pay Period Start</label>
+                <input type="date" class="paystub-start" value="${twoWeeksAgo.toISOString().split('T')[0]}">
+            </div>
+            <div class="form-group">
+                <label>Pay Period End</label>
+                <input type="date" class="paystub-end" value="${today.toISOString().split('T')[0]}">
+            </div>
+        </div>
+        <button class="btn-danger" data-paystub-id="${paystubId}">Remove Paystub</button>
+    `;
     
-    // Add initial charge field
-    addDailyCharge();
+    paystubsList.appendChild(paystubItem);
+    
+    // Add event listener to the remove button
+    const removeBtn = paystubItem.querySelector('.btn-danger');
+    removeBtn.addEventListener('click', function() {
+        removePaystub(paystubId);
+    });
 }
+
+// Remove a paystub
+function removePaystub(paystubId) {
+    const paystubItem = document.querySelector(`.paystub-item[data-id="${paystubId}"]`);
+    if (paystubItem) {
+        paystubItem.remove();
+    }
+}
+
 
 // Add a new daily charge input
 function addDailyCharge() {
@@ -88,27 +132,52 @@ function getDailyCharges() {
     return charges;
 }
 
+// Get all paystubs from the form
+function getPaystubs() {
+    const paystubs = [];
+    const paystubItems = document.querySelectorAll('.paystub-item');
+    
+    paystubItems.forEach(item => {
+        const amount = parseFloat(item.querySelector('.paystub-amount').value);
+        const startDate = item.querySelector('.paystub-start').value;
+        const endDate = item.querySelector('.paystub-end').value;
+        
+        if (amount > 0 && startDate && endDate) {
+            paystubs.push({ amount, startDate, endDate });
+        }
+    });
+    
+    return paystubs;
+}
+
 // Calculate the projection
 function calculateProjection() {
     // Get input values
-    const paystubAmount = parseFloat(document.getElementById('paystubAmount').value) || 0;
+    const paystubs = getPaystubs();
     const currentBalance = parseFloat(document.getElementById('currentBalance').value) || 0;
     const monthlyExpenses = parseFloat(document.getElementById('monthlyExpenses').value) || 0;
     const savingsGoal = parseFloat(document.getElementById('savingsGoal').value) || 0;
     const dailyCharges = getDailyCharges();
     
     // Validation
-    if (paystubAmount === 0) {
-        showError('Please enter your paystub amount');
+    if (paystubs.length === 0) {
+        showError('Please enter at least one paystub');
         return;
     }
+    
+    // Calculate total paystub amount (sum all paystubs)
+    const totalPaystubAmount = paystubs.reduce((sum, paystub) => sum + paystub.amount, 0);
+    
+    // Calculate average paystub for display purposes
+    const avgPaystubAmount = totalPaystubAmount / paystubs.length;
     
     // Calculate average daily charges
     const totalDailyCharges = dailyCharges.reduce((sum, charge) => sum + charge.amount, 0);
     const avgDailyCharge = dailyCharges.length > 0 ? totalDailyCharges / dailyCharges.length : 0;
     
     // Calculate monthly income (biweekly pay = 26 pay periods per year)
-    const monthlyIncome = paystubAmount * 26 / 12;
+    // Using average paystub to estimate monthly income
+    const monthlyIncome = avgPaystubAmount * 26 / 12;
     
     // Calculate monthly variable expenses (daily charges * 30)
     const monthlyVariableExpenses = avgDailyCharge * 30;
@@ -117,7 +186,7 @@ function calculateProjection() {
     const netMonthlySavings = monthlyIncome - monthlyExpenses - monthlyVariableExpenses;
     
     // Update stats
-    document.getElementById('statIncome').textContent = `$${paystubAmount.toFixed(2)}`;
+    document.getElementById('statIncome').textContent = `$${avgPaystubAmount.toFixed(2)}`;
     document.getElementById('statExpenses').textContent = `$${monthlyExpenses.toFixed(2)}`;
     document.getElementById('statDailyCharges').textContent = `$${avgDailyCharge.toFixed(2)}`;
     document.getElementById('statNetSavings').textContent = `$${netMonthlySavings.toFixed(2)}`;
