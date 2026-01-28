@@ -4,7 +4,7 @@ A simple, powerful web app to track your income, expenses, and project your savi
 
 ## Features
 
-- **Income Tracking**: Record your paystub amount and pay period (2-week intervals)
+- **Income Tracking**: Record multiple paystubs with amounts and pay periods
 - **Balance Management**: Track your current bank account balance
 - **Expense Tracking**: 
   - Fixed monthly expenses (rent, utilities, subscriptions)
@@ -21,8 +21,11 @@ A simple, powerful web app to track your income, expenses, and project your savi
 1. **Open the App**: Simply open `index.html` in any modern web browser (Chrome, Firefox, Safari, Edge)
 
 2. **Enter Your Income**:
-   - Input the amount from your paystub
+   - Click "Add Paystub" to add income entries
+   - Input the amount from each paystub
    - Set the pay period dates (typically a 2-week period)
+   - Add multiple paystubs to track all income sources
+   - Click "Remove Paystub" to delete any paystub entry
 
 3. **Enter Your Current Balance**:
    - Input your current bank account balance

@@ -188,6 +188,23 @@ button {
     margin-bottom: 20px;
 }
 
+/* Paystub Items */
+.paystub-item {
+    padding: 20px;
+    margin-bottom: 15px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.paystub-item .btn-danger {
+    margin-top: 10px;
+}
+
+#paystubsList {
+    margin-bottom: 20px;
+}
+
 /* Calculate Section */
 .calculate-section {
     margin: 30px 0;
